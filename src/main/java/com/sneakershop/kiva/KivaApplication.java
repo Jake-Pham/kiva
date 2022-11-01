@@ -15,3 +15,4 @@ public class KivaApplication {
 
 
 //http:localhost:8080/home/
+//localhost:8080/swagger-ui/index.html

@@ -1,8 +1,9 @@
 package com.sneakershop.kiva.repositories;
 
-import org.springframework.data.repository.CrudRepository;
 
-import com.sneakershop.kiva.models.Brand;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface BrandRepository extends CrudRepository<Brand, String> {
+import com.sneakershop.kiva.models.entity.Brand;
+
+public interface BrandRepository extends JpaRepository<Brand, Integer> {
 }
