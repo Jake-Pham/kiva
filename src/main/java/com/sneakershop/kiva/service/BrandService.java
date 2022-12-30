@@ -1,15 +1,26 @@
 package com.sneakershop.kiva.service;
 
+import org.springframework.data.domain.Page;
+import org.springframework.stereotype.Service;
+
+import com.sneakershop.kiva.entity.Brand;
+import com.sneakershop.kiva.model.request.CreateBrandRequest;
 
 import java.util.List;
 
-import com.sneakershop.kiva.models.entity.Brand;
-import com.sneakershop.kiva.models.request.BrandRequest;
-
+@Service
 public interface BrandService {
-	List<Brand> getAllBrands();
-	Brand addBrand(BrandRequest dto);
-	Brand updateBrand(BrandRequest dto, int id);
-	public void deleteBrandById(int id);
-	Brand findById(int id);
+    Page<Brand> adminGetListBrands(String id, String name, String status, Integer page);
+
+    List<Brand> getListBrand();
+
+    Brand createBrand(CreateBrandRequest createBrandRequest);
+
+    void updateBrand(CreateBrandRequest createBrandRequest, Long id);
+
+    void deleteBrand(long id);
+
+    Brand getBrandById(long id);
+
+    long getCountBrands();
 }

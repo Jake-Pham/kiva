@@ -1,59 +1,110 @@
 package com.sneakershop.kiva.service.impl;
 
-
-import java.util.List;
-
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Component;
 
-import com.sneakershop.kiva.mapping.BrandMapping;
-import com.sneakershop.kiva.models.entity.Brand;
-import com.sneakershop.kiva.models.request.BrandRequest;
-import com.sneakershop.kiva.repositories.BrandRepository;
+import com.sneakershop.kiva.entity.Brand;
+import com.sneakershop.kiva.exception.BadRequestException;
+import com.sneakershop.kiva.exception.InternalServerException;
+import com.sneakershop.kiva.exception.NotFoundException;
+import com.sneakershop.kiva.model.mapper.BrandMapper;
+import com.sneakershop.kiva.model.request.CreateBrandRequest;
+import com.sneakershop.kiva.repository.BrandRepository;
 import com.sneakershop.kiva.service.BrandService;
-@Service
-public class BrandServiceImpl implements BrandService{
-	@Autowired
-	BrandRepository brandRepository;
-	@Autowired
-	BrandMapping brandMapping;
 
-	@Override
-	public List<Brand> getAllBrands() {
-		// TODO Auto-generated method stub
-		return brandRepository.findAll();
-	}
-	@Override
-	public Brand addBrand(BrandRequest dto) {
-		// TODO Auto-generated method stub
-		Brand brand = new Brand();
-		brand = brandMapping.dtoToEntiry(dto);
-		return brandRepository.save(brand);
-	}
+import static com.sneakershop.kiva.config.Contant.LIMIT_BRAND;
 
-	@Override
-	public Brand updateBrand(BrandRequest dto, int id) {
-		// TODO Auto-generated method stub
-		Brand brand = brandRepository.findById(id).get();
-		if (brand != null) {
-			brand.setName(dto.getName());
-			brand.setImage(dto.getImage());
-			return brandRepository.save(brand);
-		} else {
-			return null;
-		}
-	}
+import java.sql.Timestamp;
+import java.util.List;
+import java.util.Optional;
 
-	@Override
-	public void deleteBrandById(int id) {
-		brandRepository.deleteById(id);
+@Component
+public class BrandServiceImpl implements BrandService {
 
-	}
+    @Autowired
+    private BrandRepository brandRepository;
 
-	@Override
-	public Brand findById(int id) {
-		// TODO Auto-generated method stub
-		return brandRepository.findById(id).get();
-	}
+    @Override
+    public Page<Brand> adminGetListBrands(String id, String name, String status, Integer page) {
+        page--;
+        if (page < 0) {
+            page = 0;
+        }
+        Pageable pageable = PageRequest.of(page, LIMIT_BRAND, Sort.by("created_at").descending());
+        return brandRepository.adminGetListBrands(id, name, status, pageable);
 
+    }
+
+    @Override
+    public List<Brand> getListBrand() {
+        return brandRepository.findAll();
+    }
+
+    @Override
+    public Brand createBrand(CreateBrandRequest createBrandRequest) {
+        Brand brand = brandRepository.findByName(createBrandRequest.getName());
+        if (brand != null) {
+            throw new BadRequestException("Tên nhãn hiệu đã tồn tại trong hệ thống, Vui lòng chọn tên khác!");
+        }
+        brand = BrandMapper.toBrand(createBrandRequest);
+        brandRepository.save(brand);
+        return brand;
+    }
+
+    @Override
+    public void updateBrand(CreateBrandRequest createBrandRequest, Long id) {
+        Optional<Brand> brand = brandRepository.findById(id);
+        if (brand.isEmpty()) {
+            throw new NotFoundException("Tên nhãn hiệu không tồn tại!");
+        }
+        Brand br = brandRepository.findByName(createBrandRequest.getName());
+        if (br != null) {
+            if (!createBrandRequest.getId().equals(br.getId()))
+                throw new BadRequestException("Tên nhãn hiệu " + createBrandRequest.getName() + " đã tồn tại trong hệ thống, Vui lòng chọn tên khác!");
+        }
+        Brand rs = brand.get();
+        rs.setId(id);
+        rs.setName(createBrandRequest.getName());
+        rs.setDescription(createBrandRequest.getDescription());
+        rs.setThumbnail(createBrandRequest.getThumbnail());
+        rs.setStatus(createBrandRequest.isStatus());
+        rs.setModifiedAt(new Timestamp(System.currentTimeMillis()));
+
+        try {
+            brandRepository.save(rs);
+        } catch (Exception ex) {
+            throw new InternalServerException("Lỗi khi chỉnh sửa nhãn hiệu");
+        }
+    }
+
+    @Override
+    public void deleteBrand(long id) {
+        Optional<Brand> brand = brandRepository.findById(id);
+        if (brand.isEmpty()) {
+            throw new NotFoundException("Tên nhãn hiệu không tồn tại!");
+        }
+        try {
+            brandRepository.deleteById(id);
+        } catch (Exception ex) {
+            throw new InternalServerException("Lỗi khi xóa nhãn hiệu!");
+        }
+    }
+
+    @Override
+    public Brand getBrandById(long id) {
+        Optional<Brand> brand = brandRepository.findById(id);
+        if (brand.isEmpty()) {
+            throw new NotFoundException("Tên nhãn hiệu không tồn tại!");
+        }
+        return brand.get();
+    }
+
+    @Override
+    public long getCountBrands() {
+        return brandRepository.count();
+    }
 }
